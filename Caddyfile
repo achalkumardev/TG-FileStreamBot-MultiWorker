@@ -1,0 +1,5 @@
+8-231-102-98.sslip.io {
+    reverse_proxy host.docker.internal:80 {
+        flush_interval -1
+    }
+}

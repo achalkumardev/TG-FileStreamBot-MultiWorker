@@ -1,0 +1,34 @@
+name: TG File Stream Bot
+
+services:
+  fsb-run:
+    image: ghcr.io/everythingsuckz/fsb:latest
+    container_name: fsb
+    restart: always
+    volumes:
+      - ./logs:/logs
+      - ./logs:/app/logs
+      - ./sessions:/sessions
+      - ./sessions:/app/sessions
+      - ./fsb.env:/fsb.env
+      - ./fsb.env:/app/fsb.env
+      - ./cloudflared.log:/app/cloudflared.log:ro
+      - ./cloudflared.log:/cloudflared.log:ro
+      - ./fsb-updated:/app/fsb
+    ports:
+      - "80:80"
+    env_file:
+      - path: ./fsb.env
+        required: true
+
+  caddy:
+    image: caddy:alpine
+    container_name: fsb-caddy
+    restart: always
+    ports:
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./caddy_data:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
