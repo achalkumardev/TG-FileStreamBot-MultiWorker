@@ -14,7 +14,6 @@ import (
 	"github.com/celestix/gotgproto/dispatcher"
 	"github.com/celestix/gotgproto/dispatcher/handlers"
 	"github.com/celestix/gotgproto/ext"
-	"github.com/celestix/gotgproto/storage"
 	"github.com/celestix/gotgproto/types"
 	"github.com/dustin/go-humanize"
 	"github.com/gotd/td/telegram/message/html"
@@ -84,11 +83,10 @@ func supportedMediaFilter(m *types.Message) (bool, error) {
 }
 
 func sendLink(ctx *ext.Context, u *ext.Update) error {
-	chatId := u.EffectiveChat().GetID()
-	peerChatId := ctx.PeerStorage.GetPeerById(chatId)
-	if peerChatId.Type != int(storage.TypeUser) {
+	if u.EffectiveChat() == nil || !u.EffectiveChat().IsAUser() {
 		return dispatcher.EndGroups
 	}
+	chatId := u.EffectiveChat().GetID()
 	if len(config.ValueOf.AllowedUsers) != 0 && !utils.Contains(config.ValueOf.AllowedUsers, chatId) {
 		ctx.Reply(u, ext.ReplyTextString("You are not allowed to use this bot."), nil)
 		return dispatcher.EndGroups

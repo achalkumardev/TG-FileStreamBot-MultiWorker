@@ -10,7 +10,6 @@ import (
 	"github.com/celestix/gotgproto/dispatcher"
 	"github.com/celestix/gotgproto/dispatcher/handlers"
 	"github.com/celestix/gotgproto/ext"
-	"github.com/celestix/gotgproto/storage"
 	"github.com/gotd/td/telegram/message/html"
 	"github.com/gotd/td/tg"
 )
@@ -25,11 +24,10 @@ func (m *command) LoadStart(dispatcher dispatcher.Dispatcher) {
 }
 
 func start(ctx *ext.Context, u *ext.Update) error {
-	chatId := u.EffectiveChat().GetID()
-	peerChatId := ctx.PeerStorage.GetPeerById(chatId)
-	if peerChatId.Type != int(storage.TypeUser) {
+	if u.EffectiveChat() == nil || !u.EffectiveChat().IsAUser() {
 		return dispatcher.EndGroups
 	}
+	chatId := u.EffectiveChat().GetID()
 	if len(config.ValueOf.AllowedUsers) != 0 && !utils.Contains(config.ValueOf.AllowedUsers, chatId) {
 		ctx.Reply(u, ext.ReplyTextString("You are not allowed to use this bot."), nil)
 		return dispatcher.EndGroups
@@ -40,7 +38,7 @@ func start(ctx *ext.Context, u *ext.Update) error {
 		userName = u.EffectiveUser().FirstName
 	}
 
-	text := fmt.Sprintf(`<a href="https://telegra.ph/file/af7bc6e8b4e75c7ea8a47.jpg">&#8204;</a><b>⚡ Turbo File Stream Bot ⚡</b>
+	text := fmt.Sprintf(`<b>⚡ Turbo File Stream Bot ⚡</b>
 ━━━━━━━━━━━━━━━━━━━━
 Hey <b>%s</b>! 👋 Welcome aboard!
 
@@ -54,6 +52,8 @@ I am an ultra-fast Telegram File Streaming & Direct Download Bot, powered by <b>
 • 🔄 <b>Resume Support:</b> Compatible with IDM, 1DM, ADM & Aria2
 
 <i>📤 Just forward or send me any file, video, or audio to get your high-speed stream link!</i>`, stdhtml.EscapeString(userName))
+
+	fallback := fmt.Sprintf("⚡ Turbo File Stream Bot ⚡\n\nHey %s! Send me any file or video to get instant stream & high-speed download links up to 65+ MB/s!", userName)
 
 	markup := &tg.ReplyInlineMarkup{
 		Rows: []tg.KeyboardButtonRow{
@@ -80,16 +80,20 @@ I am an ultra-fast Telegram File Streaming & Direct Download Bot, powered by <b>
 		},
 	}
 
-	ctx.Reply(u, ext.ReplyTextStyledText(html.String(nil, text)), &ext.ReplyOpts{
+	_, err := ctx.Reply(u, ext.ReplyTextStyledText(html.String(nil, text)), &ext.ReplyOpts{
 		Markup: markup,
 	})
+	if err != nil {
+		utils.Logger.Sugar().Warnf("Styled start reply failed (%v), falling back", err)
+		ctx.Reply(u, ext.ReplyTextString(fallback), &ext.ReplyOpts{
+			Markup: markup,
+		})
+	}
 	return dispatcher.EndGroups
 }
 
 func help(ctx *ext.Context, u *ext.Update) error {
-	chatId := u.EffectiveChat().GetID()
-	peerChatId := ctx.PeerStorage.GetPeerById(chatId)
-	if peerChatId.Type != int(storage.TypeUser) {
+	if u.EffectiveChat() == nil || !u.EffectiveChat().IsAUser() {
 		return dispatcher.EndGroups
 	}
 
@@ -114,16 +118,17 @@ func help(ctx *ext.Context, u *ext.Update) error {
 /about - Tech stack & architecture
 /speed - Speed performance report`
 
-	ctx.Reply(u, ext.ReplyTextStyledText(html.String(nil, text)), &ext.ReplyOpts{
+	_, err := ctx.Reply(u, ext.ReplyTextStyledText(html.String(nil, text)), &ext.ReplyOpts{
 		NoWebpage: true,
 	})
+	if err != nil {
+		ctx.Reply(u, ext.ReplyTextString("Send or forward any file to get a stream link. Use /start for main menu."), nil)
+	}
 	return dispatcher.EndGroups
 }
 
 func about(ctx *ext.Context, u *ext.Update) error {
-	chatId := u.EffectiveChat().GetID()
-	peerChatId := ctx.PeerStorage.GetPeerById(chatId)
-	if peerChatId.Type != int(storage.TypeUser) {
+	if u.EffectiveChat() == nil || !u.EffectiveChat().IsAUser() {
 		return dispatcher.EndGroups
 	}
 
@@ -149,9 +154,7 @@ func about(ctx *ext.Context, u *ext.Update) error {
 }
 
 func speed(ctx *ext.Context, u *ext.Update) error {
-	chatId := u.EffectiveChat().GetID()
-	peerChatId := ctx.PeerStorage.GetPeerById(chatId)
-	if peerChatId.Type != int(storage.TypeUser) {
+	if u.EffectiveChat() == nil || !u.EffectiveChat().IsAUser() {
 		return dispatcher.EndGroups
 	}
 
