@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 
+	stdhtml "html"
+
 	"EverythingSuckz/fsb/config"
 	"EverythingSuckz/fsb/internal/utils"
 
@@ -15,6 +17,7 @@ import (
 	"github.com/celestix/gotgproto/storage"
 	"github.com/celestix/gotgproto/types"
 	"github.com/dustin/go-humanize"
+	"github.com/gotd/td/telegram/message/html"
 	"github.com/gotd/td/tg"
 )
 
@@ -143,15 +146,22 @@ func sendLink(ctx *ext.Context, u *ext.Update) error {
 	downloadLink := streamLink + "&d=true"
 	fileSizeStr := humanize.Bytes(uint64(file.FileSize))
 
-	msgText := fmt.Sprintf("🎬 %s\n📦 Size: %s\n\n▶️ Web Player:\n%s\n\n⚡ Fast Download:\n%s",
-		file.FileName, fileSizeStr, watchLink, downloadLink)
+	msgText := fmt.Sprintf(`<b>⚡ FILE READY TO STREAM & DOWNLOAD ⚡</b>
+━━━━━━━━━━━━━━━━━━━━━
+📁 <b>Name:</b> <code>%s</code>
+📦 <b>Size:</b> <code>%s</code>
+⚙️ <b>Type:</b> <code>%s</code>
+🚀 <b>Edge:</b> <i>Cloudflare Anycast (BOM)</i>
+━━━━━━━━━━━━━━━━━━━━━
+<i>Click buttons below to stream or download up to 65+ MB/s!</i>`,
+		stdhtml.EscapeString(file.FileName), fileSizeStr, stdhtml.EscapeString(file.MimeType))
 
 	var rows []tg.KeyboardButtonRow
 	if strings.Contains(file.MimeType, "video") || strings.Contains(file.MimeType, "audio") {
 		rows = append(rows, tg.KeyboardButtonRow{
 			Buttons: []tg.KeyboardButtonClass{
 				&tg.KeyboardButtonURL{
-					Text: "▶️ Watch Online (Player)",
+					Text: "▶️ Watch Online (Web Player)",
 					URL:  watchLink,
 				},
 			},
@@ -160,11 +170,11 @@ func sendLink(ctx *ext.Context, u *ext.Update) error {
 	rows = append(rows, tg.KeyboardButtonRow{
 		Buttons: []tg.KeyboardButtonClass{
 			&tg.KeyboardButtonURL{
-				Text: "⚡ Download",
+				Text: "⚡ Fast Download",
 				URL:  downloadLink,
 			},
 			&tg.KeyboardButtonURL{
-				Text: "📺 Stream (VLC)",
+				Text: "📺 VLC / MX Stream",
 				URL:  streamLink,
 			},
 		},
@@ -174,7 +184,7 @@ func sendLink(ctx *ext.Context, u *ext.Update) error {
 		Rows: rows,
 	}
 
-	_, err = ctx.Reply(u, ext.ReplyTextString(msgText), &ext.ReplyOpts{
+	_, err = ctx.Reply(u, ext.ReplyTextStyledText(html.String(nil, msgText)), &ext.ReplyOpts{
 		Markup:           markup,
 		NoWebpage:        true,
 		ReplyToMessageId: u.EffectiveMessage.ID,
