@@ -6,8 +6,6 @@ import (
 	"regexp"
 	"strings"
 
-	stdhtml "html"
-
 	"EverythingSuckz/fsb/config"
 	"EverythingSuckz/fsb/internal/utils"
 
@@ -16,7 +14,6 @@ import (
 	"github.com/celestix/gotgproto/ext"
 	"github.com/celestix/gotgproto/types"
 	"github.com/dustin/go-humanize"
-	"github.com/gotd/td/telegram/message/html"
 	"github.com/gotd/td/tg"
 )
 
@@ -144,15 +141,15 @@ func sendLink(ctx *ext.Context, u *ext.Update) error {
 	downloadLink := streamLink + "&d=true"
 	fileSizeStr := humanize.Bytes(uint64(file.FileSize))
 
-	msgText := fmt.Sprintf(`<b>⚡ FILE READY TO STREAM & DOWNLOAD ⚡</b>
+	msgText := fmt.Sprintf(`⚡ FILE READY TO STREAM & DOWNLOAD ⚡
 ━━━━━━━━━━━━━━━━━━━━━
-📁 <b>Name:</b> <code>%s</code>
-📦 <b>Size:</b> <code>%s</code>
-⚙️ <b>Type:</b> <code>%s</code>
-🚀 <b>Edge:</b> <i>Cloudflare Anycast (BOM)</i>
+📁 Name: %s
+📦 Size: %s
+⚙️ Type: %s
+🚀 Edge: Cloudflare Anycast (BOM)
 ━━━━━━━━━━━━━━━━━━━━━
-<i>Click buttons below to stream or download up to 65+ MB/s!</i>`,
-		stdhtml.EscapeString(file.FileName), fileSizeStr, stdhtml.EscapeString(file.MimeType))
+Click buttons below to stream or download up to 65+ MB/s!`,
+		file.FileName, fileSizeStr, file.MimeType)
 
 	var rows []tg.KeyboardButtonRow
 	if strings.Contains(file.MimeType, "video") || strings.Contains(file.MimeType, "audio") {
@@ -182,7 +179,7 @@ func sendLink(ctx *ext.Context, u *ext.Update) error {
 		Rows: rows,
 	}
 
-	_, err = ctx.Reply(u, ext.ReplyTextStyledText(html.String(nil, msgText)), &ext.ReplyOpts{
+	_, err = ctx.Reply(u, ext.ReplyTextString(msgText), &ext.ReplyOpts{
 		Markup:           markup,
 		NoWebpage:        true,
 		ReplyToMessageId: u.EffectiveMessage.ID,
